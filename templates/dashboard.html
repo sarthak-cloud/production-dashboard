@@ -1,0 +1,1018 @@
+<!doctype html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Production Dashboard</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body class="bg-gray-100">
+
+  <!-- ============ MAIN DASHBOARD PAGE ============ -->
+  <div id="mainDashboard">
+
+  <!-- HEADER -->
+  <div class="p-3">
+    <div class="bg-[#183D67] text-white rounded-xl p-5 shadow">
+      <h1 class="text-3xl font-bold">Production Dashboard</h1>
+    </div>
+  </div>
+
+  <!-- LIVE STATUS BAR -->
+  <div class="px-3 pb-0 pt-2">
+    <div id="watcherBar"
+      class="flex items-center gap-3 rounded-xl border border-slate-200 bg-white px-4 py-2 shadow-sm text-sm">
+      <span id="watcherDot"
+        class="inline-block h-2.5 w-2.5 rounded-full bg-green-400 animate-pulse flex-shrink-0"></span>
+      <span class="text-slate-500 font-medium flex-shrink-0">Live:</span>
+      <span id="watcherMsg" class="text-slate-700 truncate">Watching Demo folder for changes...</span>
+      <span id="watcherSpinner" class="hidden ml-auto">
+        <svg class="animate-spin h-4 w-4 text-blue-500" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/>
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8z"/>
+        </svg>
+      </span>
+    </div>
+  </div>
+
+  <!-- FILTERS -->
+  <div class="px-3">
+    <div class="bg-white rounded-xl shadow p-4">
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+
+        <div>
+          <label class="font-bold block mb-2">Product</label>
+          <select id="productFamily" class="w-full border rounded px-3 py-2">
+            <option value="ALL">ALL</option>
+            <option value="HFF">HFF</option>
+            <option value="FST">FST</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="font-bold block mb-2">Date</label>
+          <input type="date" id="date" class="w-full border rounded px-3 py-2" />
+        </div>
+
+        <div>
+          <label class="font-bold block mb-2">Shift</label>
+          <select id="shift" class="w-full border rounded px-3 py-2">
+            <option value="ALL">ALL</option>
+            <option value="1">Shift A</option>
+            <option value="2">Shift B</option>
+            <option value="3">Shift C</option>
+          </select>
+        </div>
+
+        <div>
+          <label class="font-bold block mb-2">Action</label>
+          <div class="flex gap-2">
+            <button onclick="loadDashboard()"
+              class="flex-1 bg-[#183D67] hover:bg-[#0f2d4d] text-white px-6 py-2 rounded">
+              Search
+            </button>
+            <button onclick="openRefreshModal()"
+              class="flex-1 bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded">
+              Refresh
+            </button>
+          </div>
+        </div>
+
+        <div>
+          <label class="font-bold block mb-2">Efficiency</label>
+          <button onclick="openEfficiencyModal()"
+            class="w-full flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-700 text-white px-4 py-2 rounded font-semibold transition-all">
+            <svg class="w-4 h-4 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+            </svg>
+            Line Efficiency Tracker
+          </button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+
+  <!-- ================================================
+       REFRESH MODAL — date picker based
+       ================================================ -->
+  <div id="refreshModal"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 px-4">
+    <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+
+      <!-- Header -->
+      <div class="flex items-center justify-between mb-1">
+        <h2 class="text-xl font-bold text-slate-800">Refresh Database</h2>
+        <button onclick="closeRefreshModal()"
+          class="text-slate-400 hover:text-slate-600 text-2xl leading-none">&times;</button>
+      </div>
+
+      <p class="text-sm text-slate-500 mb-5">
+        Pick a date — only files created on that date will be consolidated.
+        Leave blank to refresh <span class="font-semibold text-slate-700">all files</span>.
+      </p>
+
+      <!-- Date Picker -->
+      <div class="mb-2">
+        <label class="text-xs font-semibold text-slate-600 uppercase tracking-wide mb-1 block">
+          Select Date
+        </label>
+        <input type="date" id="refreshDatePicker"
+          class="w-full border border-slate-300 rounded-lg px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400" />
+      </div>
+
+      <!-- Selected date display -->
+      <div id="refreshDateDisplay" class="hidden mb-5">
+        <div class="flex items-center justify-between bg-blue-50 border border-blue-200 rounded-lg px-4 py-2 mt-3">
+          <span class="text-sm text-blue-800 font-medium" id="refreshDateLabel"></span>
+          <button onclick="clearRefreshDate()"
+            class="text-blue-400 hover:text-red-500 font-bold text-lg leading-none ml-3">&times;</button>
+        </div>
+      </div>
+
+      <!-- Clear link -->
+      <div class="mb-5">
+        <button onclick="clearRefreshDate()"
+          class="text-xs text-slate-400 hover:text-slate-600 hover:underline">
+          Clear date (full refresh)
+        </button>
+      </div>
+
+      <div class="flex gap-3 justify-end">
+        <button onclick="closeRefreshModal()"
+          class="px-5 py-2 rounded-lg border text-slate-600 hover:bg-gray-100 text-sm font-medium">
+          Cancel
+        </button>
+        <button onclick="runRefresh()"
+          class="px-5 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-medium">
+          Start Refresh
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================================================
+       STATUS OVERLAY
+       ================================================ -->
+  <div id="statusOverlay"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/40 px-4">
+    <div id="statusCard"
+      class="max-w-md w-full rounded-3xl bg-white p-6 shadow-2xl ring-1 ring-slate-200">
+      <div id="statusIcon"
+        class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full text-xl font-bold">
+      </div>
+      <div class="text-center">
+        <p id="statusTitle" class="text-xl font-semibold text-slate-900 mb-2">Status</p>
+        <p id="statusMessage" class="text-sm text-slate-600 whitespace-pre-line"></p>
+      </div>
+      <div class="mt-6 text-center">
+        <button onclick="closeStatus()"
+          class="rounded-full bg-[#183D67] px-6 py-2 text-sm font-semibold text-white hover:bg-[#0f2d4d]">
+          OK
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- SUMMARY CARDS -->
+  <div class="p-3">
+    <div class="bg-white rounded-xl shadow p-4">
+      <div id="summaryCards" class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4"></div>
+    </div>
+  </div>
+
+  <!-- TABLE -->
+  <div class="p-3">
+    <div class="bg-white rounded-xl shadow p-4">
+      <h2 class="text-2xl font-bold mb-4">Line Wise MID Production Summary</h2>
+      <div class="overflow-x-auto overflow-y-auto h-[500px] border rounded-lg shadow-inner">
+        <table class="w-full border-collapse border">
+          <thead class="sticky top-0 bg-[#183D67] text-white z-10">
+            <tr>
+              <th class="border p-3">MID</th>
+              <th class="border p-3">Order No</th>
+              <th class="border p-3">Product</th>
+              <th class="border p-3">Length</th>
+              <th class="border p-3">Line</th>
+              <th class="border p-3">Shift A</th>
+              <th class="border p-3">Shift B</th>
+              <th class="border p-3">Shift C</th>
+              <th class="border p-3">Total</th>
+            </tr>
+          </thead>
+          <tbody id="tableBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  </div> <!-- end #mainDashboard -->
+
+  <!-- ================================================
+       EFFICIENCY FULL PAGE
+       ================================================ -->
+  <div id="efficiencyPage" class="hidden bg-gray-100 min-h-screen flex flex-col">
+
+    <!-- Efficiency Header — same style as main dashboard -->
+    <div class="p-3">
+      <div class="bg-[#183D67] text-white rounded-xl p-4 shadow flex items-center justify-between">
+        <div class="flex items-center gap-3">
+          <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>
+          </svg>
+          <h1 class="text-2xl font-bold">Line Efficiency Tracker</h1>
+        </div>
+        <button onclick="closeEfficiencyPage()"
+          class="flex items-center gap-2 bg-white/10 hover:bg-white/20 text-white px-4 py-2 rounded-lg font-semibold transition-all text-sm">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"/>
+          </svg>
+          Back to Dashboard
+        </button>
+      </div>
+    </div>
+
+    <!-- Filters -->
+    <div class="px-3 pb-3">
+      <div class="bg-white rounded-xl shadow p-4">
+        <div class="flex flex-wrap items-end gap-4">
+
+          <div>
+            <label class="text-xs font-semibold text-slate-600 block mb-1">Sub-Product</label>
+            <select id="effSubproduct" class="border rounded px-3 py-2 text-sm min-w-[140px]">
+              <option value="ALL">ALL</option>
+              <option value="OPTITAP">OPTITAP</option>
+              <option value="BTCOF">BT COF</option>
+              <option value="PRODIGY">PRODIGY</option>
+              <option value="JUMPER">JUMPER</option>
+              <option value="1x4">1x4 Splitter</option>
+              <option value="1x8">1x8 Splitter</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="text-xs font-semibold text-slate-600 block mb-1">Shift</label>
+            <select id="effShift" class="border rounded px-3 py-2 text-sm min-w-[130px]">
+              <option value="ALL">ALL Shifts</option>
+              <option value="A">Shift A</option>
+              <option value="B">Shift B</option>
+              <option value="C">Shift C</option>
+            </select>
+          </div>
+
+          <div>
+            <label class="text-xs font-semibold text-slate-600 block mb-1">Date</label>
+            <input type="date" id="effDate" class="border rounded px-3 py-2 text-sm" />
+          </div>
+
+          <button onclick="loadEfficiency()"
+            class="bg-indigo-600 hover:bg-indigo-700 text-white px-6 py-2 rounded text-sm font-semibold">
+            Load
+          </button>
+
+          <!-- Live refresh indicator -->
+          <div id="liveIndicator" class="hidden flex items-center gap-2 text-xs font-semibold text-emerald-700 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-1.5">
+            <span class="inline-block w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+            LIVE — refreshes in <span id="liveCountdown">30</span>s
+          </div>
+
+          <!-- Legend -->
+          <div class="flex flex-wrap gap-3 ml-auto text-xs font-semibold text-slate-600 items-center">
+            <div class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-sm bg-green-200 border border-green-400"></span> ≥ 100%</div>
+            <div class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-sm bg-yellow-100 border border-yellow-400"></span> 80–99%</div>
+            <div class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-sm bg-red-100 border border-red-400"></span> &lt; 80%</div>
+            <div class="flex items-center gap-1.5"><span class="inline-block w-3 h-3 rounded-sm bg-slate-100 border border-slate-300"></span> No Target</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Efficiency Table — takes remaining screen height -->
+    <div class="px-3 pb-3 flex-1 flex flex-col">
+      <div class="bg-white rounded-xl shadow flex-1 flex flex-col overflow-hidden">
+        <div class="overflow-auto flex-1">
+          <table class="w-full border-collapse text-sm" id="efficiencyTable" style="border-spacing:0;">
+            <thead style="position:sticky;top:0;z-index:20;">
+              <tr id="effHeadSubproduct" class="bg-[#183D67] text-white">
+                <th class="border-b border-r border-slate-600 p-3 text-left min-w-[160px]"
+                  style="position:sticky;left:0;background:#183D67;z-index:30;">Metric</th>
+              </tr>
+              <tr id="effHeadShifts" class="bg-[#24609e] text-white text-xs">
+                <th class="border-b border-r border-slate-600 p-3"
+                  style="position:sticky;left:0;background:#24609e;z-index:30;"></th>
+              </tr>
+            </thead>
+            <tbody id="efficiencyBody">
+              <tr>
+                <td colspan="999" class="text-center py-20 text-slate-400 italic text-base">
+                  Select filters and click <strong>Load</strong> to view efficiency data.
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary bar -->
+    <div id="effSummaryBar" class="hidden px-3 pb-4 grid grid-cols-2 md:grid-cols-5 gap-3"></div>
+
+  </div>
+
+  <!-- LOADING OVERLAY -->
+  <div id="loadingOverlay"
+    class="fixed inset-0 z-50 hidden items-center justify-center bg-black/30">
+    <div class="rounded-xl bg-white p-6 shadow-2xl flex items-center gap-3">
+      <div class="animate-spin h-8 w-8 border-4 border-t-[#183D67] border-gray-200 rounded-full"></div>
+      <div>
+        <p id="loadingText" class="text-lg font-semibold text-slate-700">Processing...</p>
+        <p class="text-sm text-slate-500">Please wait while the request completes.</p>
+      </div>
+    </div>
+  </div>
+
+  <script>
+
+    // =====================================================
+    // PRODUCT STRUCTURE
+    // =====================================================
+
+    const productStructure = {
+      HFF: [
+        { id: "OPTITAP", name: "OPTITAP" },
+        { id: "BTCOF",   name: "BT COF"  },
+        { id: "PRODIGY", name: "PRODIGY" },
+        { id: "JUMPER",  name: "JUMPER"  },
+      ],
+      FST: [
+        { id: "1x4", name: "1x4 Splitter" },
+        { id: "1x8", name: "1x8 Splitter" },
+      ],
+    };
+
+    function getProductsForFamily(family) {
+      if (family === "ALL") return [...productStructure.HFF, ...productStructure.FST];
+      return productStructure[family] || [];
+    }
+
+    // =====================================================
+    // SUMMARY CARDS
+    // =====================================================
+
+    function generateSummaryCards() {
+      const family   = document.getElementById("productFamily").value;
+      const products = getProductsForFamily(family);
+
+      let html = `
+        <div class="border rounded-xl text-center py-8 bg-gray-50">
+          <h2 class="font-bold text-xl">TOTAL</h2>
+          <div id="count-TOTAL" class="text-5xl font-bold mt-4">0</div>
+        </div>`;
+
+      products.forEach(p => {
+        html += `
+        <div class="border rounded-xl text-center py-8 bg-blue-50">
+          <h2 class="font-bold text-xl">${p.name}</h2>
+          <div id="count-${p.id}" class="text-5xl font-bold mt-4">0</div>
+        </div>`;
+      });
+
+      document.getElementById("summaryCards").innerHTML = html;
+    }
+
+    // =====================================================
+    // STATUS OVERLAY
+    // =====================================================
+
+    function showStatus(message, type = "info") {
+      const overlay = document.getElementById("statusOverlay");
+      const icon    = document.getElementById("statusIcon");
+      const title   = document.getElementById("statusTitle");
+      const msg     = document.getElementById("statusMessage");
+      const card    = document.getElementById("statusCard");
+
+      msg.textContent   = message;
+      title.textContent = type === "success" ? "Completed Successfully"
+                        : type === "error"   ? "Action Failed"
+                        :                      "Status Update";
+
+      icon.className   = "mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full text-xl font-bold";
+      icon.textContent = type === "success" ? "✓" : type === "error" ? "✕" : "i";
+
+      if (type === "success") {
+        icon.classList.add("bg-emerald-100", "text-emerald-700");
+        card.className = "max-w-md w-full rounded-3xl bg-white p-6 shadow-2xl border border-emerald-100";
+      } else if (type === "error") {
+        icon.classList.add("bg-rose-100", "text-rose-700");
+        card.className = "max-w-md w-full rounded-3xl bg-white p-6 shadow-2xl border border-rose-100";
+      } else {
+        icon.classList.add("bg-sky-100", "text-sky-700");
+        card.className = "max-w-md w-full rounded-3xl bg-white p-6 shadow-2xl border border-sky-100";
+      }
+
+      overlay.classList.remove("hidden");
+      overlay.classList.add("flex");
+      clearTimeout(window.statusTimer);
+      window.statusTimer = setTimeout(closeStatus, 5000);
+    }
+
+    function closeStatus() {
+      const overlay = document.getElementById("statusOverlay");
+      overlay.classList.add("hidden");
+      overlay.classList.remove("flex");
+      clearTimeout(window.statusTimer);
+    }
+
+    // =====================================================
+    // LOADING OVERLAY
+    // =====================================================
+
+    function showLoading(message = "Processing...") {
+      document.getElementById("loadingText").textContent = message;
+      const el = document.getElementById("loadingOverlay");
+      el.classList.remove("hidden");
+      el.classList.add("flex");
+    }
+
+    function hideLoading() {
+      const el = document.getElementById("loadingOverlay");
+      el.classList.add("hidden");
+      el.classList.remove("flex");
+    }
+
+    // =====================================================
+    // REFRESH MODAL — date picker logic
+    // =====================================================
+
+    function formatDateDisplay(iso) {
+      if (!iso) return "";
+      const [y, m, d] = iso.split("-");
+      const months = ["Jan","Feb","Mar","Apr","May","Jun",
+                      "Jul","Aug","Sep","Oct","Nov","Dec"];
+      return `${d} ${months[parseInt(m) - 1]} ${y}`;
+    }
+
+    function openRefreshModal() {
+      // Reset picker
+      document.getElementById("refreshDatePicker").value = "";
+      document.getElementById("refreshDateDisplay").classList.add("hidden");
+      document.getElementById("refreshDateLabel").textContent = "";
+
+      const modal = document.getElementById("refreshModal");
+      modal.classList.remove("hidden");
+      modal.classList.add("flex");
+    }
+
+    function closeRefreshModal() {
+      const modal = document.getElementById("refreshModal");
+      modal.classList.add("hidden");
+      modal.classList.remove("flex");
+    }
+
+    function clearRefreshDate() {
+      document.getElementById("refreshDatePicker").value = "";
+      document.getElementById("refreshDateDisplay").classList.add("hidden");
+      document.getElementById("refreshDateLabel").textContent = "";
+    }
+
+    // Show selected date as a pill when user picks one
+    document.addEventListener("DOMContentLoaded", () => {
+      document.getElementById("refreshDatePicker").addEventListener("change", function () {
+        const val = this.value;
+        if (!val) {
+          clearRefreshDate();
+          return;
+        }
+        document.getElementById("refreshDateLabel").textContent =
+          `📅  ${formatDateDisplay(val)}  —  files created on this date only`;
+        document.getElementById("refreshDateDisplay").classList.remove("hidden");
+      });
+    });
+
+    async function runRefresh() {
+      const pickedDate = document.getElementById("refreshDatePicker").value;  // "YYYY-MM-DD" or ""
+
+      closeRefreshModal();
+      showLoading(pickedDate
+        ? `Consolidating files for ${formatDateDisplay(pickedDate)}...`
+        : "Full refresh — consolidating all files..."
+      );
+
+      try {
+        const dateParam = pickedDate ? `?dates=${encodeURIComponent(pickedDate)}` : "";
+        const response  = await fetch(`/refresh-database${dateParam}`);
+        const data      = await response.json();
+
+        if (!response.ok || data.success === false) {
+          showStatus(`Refresh failed: ${data.message || "Unknown error"}`, "error");
+          return;
+        }
+
+        showStatus(data.message, "success");
+
+      } catch (error) {
+        console.error(error);
+        showStatus(`Refresh failed: ${error.message || "Network error"}`, "error");
+      } finally {
+        hideLoading();
+      }
+    }
+
+    // =====================================================
+    // LOAD DASHBOARD
+    // =====================================================
+
+    // silent=true  → called by watcher auto-poll (no loading overlay, no status popup, table stays visible until new data is ready)
+    // silent=false → called by user clicking Search button (full loading overlay as before)
+    async function loadDashboard(silent = false) {
+      const family   = document.getElementById("productFamily").value;
+      const date     = document.getElementById("date").value;
+      const shift    = document.getElementById("shift").value;
+      const products = getProductsForFamily(family);
+      const ids      = products.map(p => p.id).join(",");
+
+      // For silent (watcher) reloads: show a tiny non-blocking banner instead of overlay
+      if (silent) {
+        showSilentBanner("Live update incoming…");
+      } else {
+        showLoading("Searching dashboard...");
+      }
+
+      try {
+        const response = await fetch(
+          `/dashboard-data?product=${encodeURIComponent(ids)}&date=${encodeURIComponent(date)}&shift=${encodeURIComponent(shift)}`
+        );
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          if (!silent) showStatus(`Search failed: ${data.message || "Unable to load data"}`, "error");
+          return;
+        }
+
+        // ── Only update the DOM AFTER we have good data ──
+        // This prevents the "blank flash" — old data stays visible until new data is ready
+
+        document.getElementById("count-TOTAL").innerHTML = data.total || 0;
+
+        products.forEach(p => {
+          const el = document.getElementById(`count-${p.id}`);
+          if (el) el.innerHTML = data[p.id] || 0;
+        });
+
+        let tableHTML = "";
+
+        (data.rows || []).forEach((row, index) => {
+          tableHTML += `
+          <tr class="${index % 2 === 0 ? 'bg-white' : 'bg-gray-50'} hover:bg-blue-50">
+            <td class="border-b p-3 text-center font-medium">${row.mid}</td>
+            <td class="border-b p-3 text-center">${row.order}</td>
+            <td class="border-b p-3 text-center">
+              <span class="bg-blue-100 text-blue-700 px-3 py-1 rounded-full text-xs font-bold">
+                ${row.product}
+              </span>
+            </td>
+            <td class="border-b p-3 text-center">${row.length}</td>
+            <td class="border-b p-3 text-center">${row.line}</td>
+            <td class="border-b p-3 text-center">${row.shift_a}</td>
+            <td class="border-b p-3 text-center">${row.shift_b}</td>
+            <td class="border-b p-3 text-center">${row.shift_c}</td>
+            <td class="border-b p-3 text-center">
+              <span class="bg-green-100 text-green-700 px-3 py-1 rounded-lg font-bold">
+                ${row.total}
+              </span>
+            </td>
+          </tr>`;
+        });
+
+        // Swap table content only now — data is ready, no blank flash
+        document.getElementById("tableBody").innerHTML = tableHTML;
+
+        if (silent) {
+          hideSilentBanner();
+        } else {
+          showStatus("Search completed successfully.", "success");
+        }
+
+      } catch (error) {
+        console.error(error);
+        hideSilentBanner();
+        if (!silent) showStatus(`Search failed: ${error.message || "Network error"}`, "error");
+      } finally {
+        if (!silent) hideLoading();
+      }
+    }
+
+    // ── Silent banner (tiny, non-blocking, bottom-right corner) ──
+    function showSilentBanner(msg) {
+      let banner = document.getElementById("silentBanner");
+      if (!banner) {
+        banner = document.createElement("div");
+        banner.id = "silentBanner";
+        banner.style.cssText = [
+          "position:fixed",
+          "bottom:1.5rem",
+          "right:1.5rem",
+          "z-index:9999",
+          "background:#183D67",
+          "color:#ffffff",
+          "padding:0.75rem 1.25rem",
+          "border-radius:12px",
+          "font-size:0.95rem",
+          "font-weight:600",
+          "display:flex",
+          "align-items:center",
+          "gap:0.6rem",
+          "box-shadow:0 4px 16px rgba(0,0,0,0.4)",
+          "border:2px solid #4ade80"
+        ].join(";");
+
+        // Spinning loader circle instead of pulse dot
+        banner.innerHTML = `
+          <span style="
+            width:14px;height:14px;border-radius:50%;
+            border:3px solid #4ade80;
+            border-top-color:transparent;
+            display:inline-block;
+            animation:liveSpin 0.8s linear infinite;
+          "></span>
+          <span id="silentBannerText"></span>
+        `;
+
+        // Inject keyframe animation into page
+        if (!document.getElementById("liveBannerStyle")) {
+          const style = document.createElement("style");
+          style.id = "liveBannerStyle";
+          style.textContent = "@keyframes liveSpin { to { transform: rotate(360deg); } }";
+          document.head.appendChild(style);
+        }
+
+        document.body.appendChild(banner);
+      }
+      document.getElementById("silentBannerText").textContent = msg;
+      banner.style.display = "flex";
+    }
+
+    function hideSilentBanner() {
+      const banner = document.getElementById("silentBanner");
+      if (banner) banner.style.display = "none";
+    }
+
+    // =====================================================
+    // INIT
+    // =====================================================
+
+    document.getElementById("productFamily").addEventListener("change", generateSummaryCards);
+    generateSummaryCards();
+
+    // =====================================================
+    // LIVE WATCHER POLLING
+    // Polls /watcher-status every 10 seconds.
+    // If a new auto-consolidation happened, reloads dashboard.
+    // =====================================================
+
+    let lastWatcherTime = "";   // track last known update time
+
+    async function pollWatcherStatus() {
+      try {
+        const res  = await fetch("/watcher-status");
+        const data = await res.json();
+
+        const dot     = document.getElementById("watcherDot");
+        const msg     = document.getElementById("watcherMsg");
+        const spinner = document.getElementById("watcherSpinner");
+
+        if (data.processing) {
+          // Consolidation in progress
+          dot.className     = "inline-block h-2.5 w-2.5 rounded-full bg-yellow-400 animate-pulse flex-shrink-0";
+          msg.textContent   = data.message || "Processing...";
+          spinner.classList.remove("hidden");
+
+        } else {
+          // Idle
+          dot.className     = "inline-block h-2.5 w-2.5 rounded-full bg-green-400 animate-pulse flex-shrink-0";
+          msg.textContent   = data.message || "Watching Demo folder for changes...";
+          spinner.classList.add("hidden");
+
+          // New update detected — silently reload dashboard (no blank flash)
+          if (data.last_time && data.last_time !== lastWatcherTime) {
+            lastWatcherTime = data.last_time;
+            console.log("[LIVE] New data detected, reloading dashboard silently...");
+            loadDashboard(true);   // silent=true → keeps old data visible until new data is ready
+          }
+        }
+
+      } catch (err) {
+        // Silently ignore network errors during polling
+        console.warn("[LIVE] Poll failed:", err.message);
+      }
+    }
+
+    // Start polling immediately, then every 10 seconds
+    pollWatcherStatus();
+    setInterval(pollWatcherStatus, 10000);
+
+
+    // =====================================================
+    // EFFICIENCY MODAL
+    // =====================================================
+
+    function openEfficiencyModal() {
+      document.getElementById("mainDashboard").classList.add("hidden");
+      document.getElementById("efficiencyPage").classList.remove("hidden");
+      window.scrollTo(0, 0);
+    }
+
+    function closeEfficiencyPage() {
+      _stopAutoRefresh();
+      document.getElementById("efficiencyPage").classList.add("hidden");
+      document.getElementById("mainDashboard").classList.remove("hidden");
+      window.scrollTo(0, 0);
+    }
+
+    // kept for any legacy references
+    function closeEfficiencyModal() { closeEfficiencyPage(); }
+
+    // ── Lines displayed in the efficiency table ──
+    // EDIT these to match your actual line names from the DB
+    const EFF_LINES = ["Line1", "Line2", "Line3", "Line4"];
+
+    // ── Target per sub-product ──
+    const EFF_TARGETS = {
+      "OPTITAP": 350,
+      "BTCOF":   350,
+      "PRODIGY": 350,
+      "JUMPER":  175,
+      "1x4":     350,
+      "1x8":     350,
+      "ALL":     350   // default when ALL selected
+    };
+
+    // ── Colour helpers ──
+    function effColor(actual, target) {
+      if (!target || target === 0) return "bg-slate-50";
+      const pct = (actual / target) * 100;
+      if (pct >= 100) return "bg-green-100";
+      if (pct >= 80)  return "bg-yellow-50";
+      return "bg-red-50";
+    }
+
+    function effBadge(actual, target) {
+      if (!target || target === 0) return `<span class="text-slate-400">—</span>`;
+      const pct = Math.round((actual / target) * 100);
+      const color = pct >= 100 ? "text-green-700 font-bold"
+                  : pct >= 80  ? "text-yellow-600 font-bold"
+                  :               "text-red-600 font-bold";
+      return `<span class="${color}">${pct}%</span>`;
+    }
+
+    // ── Build table header rows ──
+    function buildEfficiencyTable(lines, activeShifts) {
+      // Row 1 — Line group headers (each spans all shift cols for that line)
+      const headSub = document.getElementById("effHeadSubproduct");
+      while (headSub.children.length > 1) headSub.removeChild(headSub.lastChild);
+      lines.forEach(line => {
+        const th = document.createElement("th");
+        th.colSpan = activeShifts.length;
+        th.style.cssText = "border-bottom:1px solid #475569;border-right:1px solid #475569;padding:10px;text-align:center;min-width:" + (90 * activeShifts.length) + "px;";
+        th.textContent = line;
+        headSub.appendChild(th);
+      });
+
+      // Row 2 — Shift sub-columns per line
+      const headShifts = document.getElementById("effHeadShifts");
+      while (headShifts.children.length > 1) headShifts.removeChild(headShifts.lastChild);
+      lines.forEach(() => {
+        activeShifts.forEach(sh => {
+          const th = document.createElement("th");
+          th.style.cssText = "border-bottom:1px solid #475569;border-right:1px solid #475569;padding:8px;text-align:center;min-width:90px;";
+          th.textContent = `Shift ${sh}`;
+          headShifts.appendChild(th);
+        });
+      });
+    }
+
+    // ── Render data rows (no hourly breakdown — Target / Actual / Efficiency% only) ──
+    function renderEfficiencyRows(lines, activeShifts, data, target) {
+      const tbody = document.getElementById("efficiencyBody");
+
+      const metricRows = [
+        { key: "target",   label: "Target"         },
+        { key: "actual",   label: "Actual (Total)" },
+        { key: "efficiency", label: "Efficiency %", isEff: true },
+      ];
+
+      let html = "";
+
+      metricRows.forEach(row => {
+        html += `<tr class="bg-white hover:bg-blue-50">`;
+        html += `<td style="position:sticky;left:0;z-index:5;background:#ffffff;"
+                     class="border-b border-r p-2.5 whitespace-nowrap font-semibold text-slate-700 text-sm">${row.label}</td>`;
+
+        lines.forEach(line => {
+          activeShifts.forEach(sh => {
+            const ld  = data?.[line]?.[sh];
+            let val   = "—";
+            let bg    = "";
+
+            if (row.isEff) {
+              val = ld ? effBadge(ld.actual ?? 0, target) : `<span class="text-slate-400">—</span>`;
+              if (ld) bg = effColor(ld.actual ?? 0, target);
+            } else if (row.key === "target") {
+              val = target;
+            } else {
+              val = ld?.[row.key] ?? "—";
+              if (row.key === "actual" && ld) bg = effColor(ld.actual ?? 0, target);
+            }
+
+            html += `<td class="border-b p-2.5 text-center text-sm ${bg}">${val}</td>`;
+          });
+        });
+
+        html += `</tr>`;
+      });
+
+      tbody.innerHTML = html;
+    }
+
+    // ── Main load function ──
+    // =====================================================
+    // TOAST — small auto-dismiss notification
+    // =====================================================
+    function showToast(msg, type = "success", durationMs = 3500) {
+      let toast = document.getElementById("effToast");
+      if (!toast) {
+        toast = document.createElement("div");
+        toast.id = "effToast";
+        toast.style.cssText = [
+          "position:fixed", "bottom:1.5rem", "right:1.5rem",
+          "z-index:9999", "max-width:320px",
+          "border-radius:12px", "padding:0.85rem 1.1rem",
+          "display:flex", "align-items:center", "gap:0.6rem",
+          "font-size:0.875rem", "font-weight:600",
+          "box-shadow:0 4px 18px rgba(0,0,0,0.18)",
+          "transition:opacity 0.4s ease"
+        ].join(";");
+        document.body.appendChild(toast);
+      }
+      const styles = {
+        success: { bg: "#f0fdf4", border: "1.5px solid #86efac", color: "#15803d", icon: "✅" },
+        error:   { bg: "#fff1f2", border: "1.5px solid #fca5a5", color: "#b91c1c", icon: "⚠️" },
+        info:    { bg: "#eff6ff", border: "1.5px solid #93c5fd", color: "#1d4ed8", icon: "ℹ️" },
+      };
+      const s = styles[type] || styles.info;
+      toast.style.background   = s.bg;
+      toast.style.border       = s.border;
+      toast.style.color        = s.color;
+      toast.style.opacity      = "1";
+      toast.style.display      = "flex";
+      toast.innerHTML = `<span style="font-size:1.1rem">${s.icon}</span><span>${msg}</span>`;
+      clearTimeout(toast._timer);
+      toast._timer = setTimeout(() => {
+        toast.style.opacity = "0";
+        setTimeout(() => { toast.style.display = "none"; }, 400);
+      }, durationMs);
+    }
+
+    // =====================================================
+    // LOAD EFFICIENCY  — auto-pushes to Excel server-side
+    // Live auto-refresh every 30s when efficiency page visible.
+    // =====================================================
+    let _effAutoRefreshTimer = null;
+    let _effCountdownTimer  = null;
+    let _effCountdownSecs   = 30;
+
+    function _startAutoRefresh() {
+      _stopAutoRefresh();
+      document.getElementById("liveIndicator").classList.remove("hidden");
+
+      // Countdown tick
+      _effCountdownSecs = 30;
+      document.getElementById("liveCountdown").textContent = _effCountdownSecs;
+      _effCountdownTimer = setInterval(() => {
+        _effCountdownSecs--;
+        if (_effCountdownSecs <= 0) _effCountdownSecs = 30;
+        document.getElementById("liveCountdown").textContent = _effCountdownSecs;
+      }, 1000);
+
+      _effAutoRefreshTimer = setInterval(() => {
+        if (!document.getElementById("efficiencyPage").classList.contains("hidden")) {
+          _effCountdownSecs = 30;
+          loadEfficiency(true);  // silent=true → no loading overlay
+        }
+      }, 30000);
+    }
+
+    function _stopAutoRefresh() {
+      if (_effAutoRefreshTimer) { clearInterval(_effAutoRefreshTimer); _effAutoRefreshTimer = null; }
+      if (_effCountdownTimer)   { clearInterval(_effCountdownTimer);   _effCountdownTimer   = null; }
+      const ind = document.getElementById("liveIndicator");
+      if (ind) ind.classList.add("hidden");
+    }
+
+    async function loadEfficiency(silent = false) {
+      const subproduct   = document.getElementById("effSubproduct").value;
+      const shiftVal     = document.getElementById("effShift").value;
+      const dateVal      = document.getElementById("effDate").value;
+      const activeShifts = (shiftVal === "ALL") ? ["A","B","C"] : [shiftVal];
+
+      if (!silent) showLoading("Loading efficiency data...");
+
+      try {
+        const resp = await fetch(
+          `/efficiency-data?subproduct=${encodeURIComponent(subproduct)}&date=${encodeURIComponent(dateVal)}&shift=${encodeURIComponent(shiftVal)}`
+        );
+
+        // Guard: if server returns HTML error page instead of JSON
+        const contentType = resp.headers.get("content-type") || "";
+        if (!contentType.includes("application/json")) {
+          const text = await resp.text();
+          if (!silent) showStatus("Server error: " + text.substring(0, 200), "error");
+          return;
+        }
+
+        const json = await resp.json();
+
+        if (!json.success) {
+          if (!silent) showStatus("Failed to load efficiency data: " + (json.message || "Unknown error"), "error");
+          return;
+        }
+
+        const data   = json.data   || {};
+        const target = json.target || EFF_TARGETS[subproduct] || 350;
+
+        // Merge API lines with EFF_LINES
+        const allLines = [...new Set([...EFF_LINES, ...(json.lines || [])])];
+
+        buildEfficiencyTable(allLines, activeShifts);
+        renderEfficiencyRows(allLines, activeShifts, data, target);
+
+        // ── Summary bar ──
+        let totalTarget = 0, totalActual = 0;
+        allLines.forEach(line => {
+          activeShifts.forEach(sh => {
+            if (data[line]?.[sh]) {
+              totalTarget += target;
+              totalActual += data[line][sh].actual ?? 0;
+            }
+          });
+        });
+        const pct      = totalTarget > 0 ? Math.round((totalActual / totalTarget) * 100) : 0;
+        const pctColor = pct >= 100 ? "text-green-700 bg-green-50 border-green-200"
+                       : pct >= 80  ? "text-yellow-700 bg-yellow-50 border-yellow-200"
+                       :               "text-red-700 bg-red-50 border-red-200";
+        const now      = new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+
+        document.getElementById("effSummaryBar").innerHTML = `
+          <div class="border rounded-xl p-3 text-center bg-blue-50 border-blue-200">
+            <div class="text-xs font-semibold text-slate-500 mb-1">Total Target</div>
+            <div class="text-2xl font-bold text-blue-700">${totalTarget}</div>
+          </div>
+          <div class="border rounded-xl p-3 text-center bg-slate-50 border-slate-200">
+            <div class="text-xs font-semibold text-slate-500 mb-1">Total Actual</div>
+            <div class="text-2xl font-bold text-slate-700">${totalActual}</div>
+          </div>
+          <div class="border rounded-xl p-3 text-center ${pctColor} border">
+            <div class="text-xs font-semibold mb-1">Overall Efficiency</div>
+            <div class="text-2xl font-bold">${pct}%</div>
+          </div>
+          <div class="border rounded-xl p-3 text-center bg-white border-slate-200">
+            <div class="text-xs font-semibold text-slate-500 mb-1">Lines Tracked</div>
+            <div class="text-2xl font-bold text-slate-700">${allLines.length}</div>
+          </div>
+          <div class="border rounded-xl p-3 text-center bg-emerald-50 border-emerald-200 flex flex-col items-center justify-center gap-1">
+            <div class="text-xs font-semibold text-emerald-700">Excel Auto-Saved</div>
+            <div class="text-lg font-bold text-emerald-800">✅</div>
+            <div class="text-xs text-slate-500">Updated at ${now}</div>
+          </div>
+        `;
+        document.getElementById("effSummaryBar").classList.remove("hidden");
+
+        // Toast only on manual load, not auto-refresh
+        if (!silent) {
+          if (json.excel_error) {
+            showToast("Excel save error: " + json.excel_error, "error", 5000);
+          } else {
+            showToast(`Loaded & Excel updated at ${now}`, "success", 3000);
+          }
+        }
+
+        // Start live refresh timer
+        _startAutoRefresh();
+
+      } catch (err) {
+        if (!silent) showStatus("Error loading efficiency data: " + err.message, "error");
+      } finally {
+        if (!silent) hideLoading();
+      }
+    }
+
+  </script>
+</body>
+
+</html>
